@@ -1,0 +1,31 @@
+# Dependencies & build output
+node_modules
+.pnpm-store
+dist
+*.tsbuildinfo
+generated
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# VCS & editor
+.git
+.gitignore
+.dockerignore
+.vscode
+.idea
+
+# Docs (not needed in dev image build context)
+README.md
+*.md
+
+# Tests & coverage
+coverage
+.nyc_output
+test
+
+# OS & logs
+.DS_Store
+*.log

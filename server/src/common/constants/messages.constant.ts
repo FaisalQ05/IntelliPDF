@@ -1,0 +1,38 @@
+export const Messages = {
+  SUCCESS: "Success",
+  ERROR: "Internal server error",
+  NOT_FOUND: "Resource not found",
+  VALIDATION_FAILED: "Validation failed",
+  UNAUTHORIZED: "Authentication required",
+  FORBIDDEN: "You don't have permission to access this resource",
+  AUTH: {
+    INVALID_CREDENTIALS: "Invalid credentials",
+    SESSION_EXPIRED: "Session expired. Please login",
+    TOKEN_EXPIRED: "Access token expired or invalid",
+    REFRESH_TOKEN_EXPIRED: "Invalid or expired refresh token. Please login again.",
+    LOGIN_SUCCESS: "Login successful",
+    SIGNUP_SUCCESS: "Signup successful",
+    GOOGLE_LOGIN_SUCCESS: "Google login successful",
+    LOGOUT_SUCCESS: "Logout successful",
+    TOKEN_REFRESHED: "Token refreshed",
+  },
+  USER: {
+    NOT_FOUND: "User not found",
+    ALREADY_EXISTS: "User already exists",
+    FETCHED: "User fetched successfully",
+    ALL_FETCHED: "Users fetched successfully",
+  },
+  AUDIT: {
+    FETCHED: "Login logs fetched successfully",
+  },
+  PDF_CHAT: {
+    DOCUMENT_UPLOADED: "Document uploaded successfully",
+    DOCUMENTS_FETCHED: "Documents fetched successfully",
+    DOCUMENT_DELETED: "Document deleted successfully",
+    CHAT_CREATED: "Chat created successfully",
+    CHATS_FETCHED: "Chats fetched successfully",
+    CHAT_DELETED: "Chat deleted successfully",
+    MESSAGES_FETCHED: "Messages fetched successfully",
+    MESSAGE_SENT: "Message sent successfully",
+  },
+} as const;

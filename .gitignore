@@ -1,0 +1,120 @@
+# Dependencies — Node
+node_modules/
+.pnpm-store/
+.pnp
+.pnp.js
+.pnp.cache
+
+# Dependencies — Python (embeddings service)
+embeddings/venv/
+embeddings/.venv/
+venv/
+.venv/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# ML model caches (FastEmbed / HuggingFace — do not commit weights)
+embeddings/.cache/
+.fastembed/
+.huggingface/
+**/.cache/huggingface/
+
+# Build outputs — Node
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+server/dist/
+client/build/
+server/generated/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+server/.env
+server/.env.*
+!server/.env.example
+client/.env
+client/.env.*
+!client/.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker / persistent local data
+postgres/
+keycloak/
+postgres/data/
+redis/data/
+mongo/data/
+mongo/keyfile/
+certbot/
+
+# Runtime uploads (PDFs are stored locally while they are indexed)
+server/uploads/
+
+# Testing & coverage
+coverage/
+.nyc_output/
+*.lcov
+jest.config.local.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+
+# Editors & IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+*.iml
+*.swp
+*.swo
+*.bak
+
+# Certificates & keys
+*.pem
+*.p12
+*.key
+*.cert
+*.crt
+
+# Misc local
+.obsidian/
+
+
+/server/certs
+
+*.env
+
+
+client_secret_618992871195-mvnsbksbdktucgv5ho64vsiq4esebkdm.apps.googleusercontent.com.json
+
+docs

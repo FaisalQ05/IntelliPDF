@@ -1,0 +1,32 @@
+# Dependencies & caches
+node_modules
+.pnpm-store
+.next
+out
+.turbo
+dist
+build
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# VCS & editor
+.git
+.gitignore
+.dockerignore
+.vscode
+.idea
+
+# Docs (not needed in dev image build context)
+README.md
+*.md
+
+# Tests & coverage
+coverage
+.nyc_output
+
+# OS & logs
+.DS_Store
+*.log

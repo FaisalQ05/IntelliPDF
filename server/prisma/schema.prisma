@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  USER
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  KEYCLOAK
+}
+
+model User {
+  id String @id @default(uuid())
+
+  email String @unique
+
+  passwordHash String?
+
+  name String?
+
+  role Role @default(USER)
+
+  provider AuthProvider @default(LOCAL)
+
+  providerId String?
+
+  sessions   Session[]
+  loginLogs  LoginLog[]
+  documents  Document[]
+  chats      Chat[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  refreshTokenHash String @unique
+
+  ipAddress String?
+
+  isActive Boolean @default(true)
+  revoked  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model LoginLog {
+  id String @id @default(uuid())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  email String?
+
+  provider AuthProvider
+
+  success Boolean
+
+  ipAddress String?
+
+  loginAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("login_logs")
+}
+
+enum DocumentStatus {
+  QUEUED
+  PROCESSING
+  EMBEDDING
+  INDEXING
+  COMPLETED
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+model Document {
+  id        String         @id @default(uuid())
+
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  filename  String
+  fileSize  Int
+  pageCount Int?
+  filePath  String?
+  status    DocumentStatus @default(QUEUED)
+  progress  Int            @default(0)
+  error     String?
+
+  chats     Chat[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("documents")
+}
+
+model Chat {
+  id         String   @id @default(uuid())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  messages   ChatMessage[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([documentId])
+  @@map("chats")
+}
+
+model ChatMessage {
+  id      String      @id @default(uuid())
+
+  chatId  String
+  chat    Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  role    MessageRole
+  content String
+  citations Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([chatId])
+  @@map("chat_messages")
+}

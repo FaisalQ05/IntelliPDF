@@ -1,0 +1,286 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    
+    /* Slightly more refined rounded corners */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.25rem;
+    --radius-3xl: 1.5rem;
+    --radius-4xl: 2rem;
+
+    /* Premium AI Brand Tokens */
+    --color-brand-50: #eef2ff;
+    --color-brand-100: #e0e7ff;
+    --color-brand-200: #c7d2fe;
+    --color-brand-300: #a5b4fc;
+    --color-brand-400: #818cf8;
+    --color-brand-500: #6366f1;
+    --color-brand-600: #4f46e5;
+    --color-brand-700: #4338ca;
+    --color-brand-800: #3730a3;
+    --color-brand-900: #312e81;
+
+    --color-violet-400: #a78bfa;
+    --color-violet-500: #8b5cf6;
+    --color-violet-600: #7c3aed;
+    
+    /* High-end Neutral Grays (Zinc-like) */
+    --color-neutral-50: #fafafa;
+    --color-neutral-100: #f4f4f5;
+    --color-neutral-200: #e4e4e7;
+    --color-neutral-300: #d4d4d8;
+    --color-neutral-400: #a1a1aa;
+    --color-neutral-500: #71717a;
+    --color-neutral-600: #52525b;
+    --color-neutral-700: #3f3f46;
+    --color-neutral-800: #27272a;
+    --color-neutral-900: #18181b;
+}
+
+:root {
+    /* Base Colors - Clean & High Contrast */
+    --background: oklch(0.99 0 0); /* Pure, bright white base */
+    --foreground: oklch(0.18 0 0); /* Very dark gray for sharp text */
+    
+    /* Card & Popover */
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.18 0 0);
+    
+    /* Brand Primary */
+    --primary: oklch(0.45 0.22 264); /* Rich deep indigo */
+    --primary-foreground: oklch(0.985 0 0);
+    
+    /* Secondary & Muted */
+    --secondary: oklch(0.97 0 0); /* Soft gray */
+    --secondary-foreground: oklch(0.2 0 0);
+    --muted: oklch(0.96 0 0); /* Muted gray for backgrounds */
+    --muted-foreground: oklch(0.45 0 0); /* Subtle text */
+    
+    /* Accent (Subtle interactive color) */
+    --accent: oklch(0.96 0.01 264);
+    --accent-foreground: oklch(0.35 0.15 264);
+    
+    /* Destructive */
+    --destructive: oklch(0.55 0.2 27);
+    
+    /* Borders & Inputs */
+    --border: oklch(0.93 0 0); /* Very light, elegant borders */
+    --input: oklch(0.93 0 0);
+    --ring: oklch(0.65 0.2 264);
+    
+    --radius: 0.75rem;
+    
+    /* Sidebar (Currently unused but standard) */
+    --sidebar: oklch(0.98 0 0);
+    --sidebar-foreground: oklch(0.18 0 0);
+    --sidebar-primary: oklch(0.45 0.22 264);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.96 0.01 264);
+    --sidebar-accent-foreground: oklch(0.35 0.15 264);
+    --sidebar-border: oklch(0.93 0 0);
+    --sidebar-ring: oklch(0.65 0.2 264);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    letter-spacing: -0.01em; /* Modern typography squeeze */
+  }
+  html {
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ─── Premium SaaS Animations & Effects ──────────────────────── */
+
+@keyframes ipdf-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes ipdf-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ipdf-slide-down {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ipdf-scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ipdf-typing-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+  40%           { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes ipdf-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes ipdf-upload-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+@keyframes ipdf-logo-glow {
+  0%, 100% { box-shadow: 0 0 16px rgba(99,102,241,0.2), 0 0 32px rgba(124,58,237,0.1); }
+  50%      { box-shadow: 0 0 24px rgba(99,102,241,0.3),  0 0 48px rgba(124,58,237,0.15); }
+}
+
+/* ─── Utility Classes ────────────────────────────────────── */
+
+.ipdf-animate-fade-in   { animation: ipdf-fade-in   0.4s ease both; }
+.ipdf-animate-slide-up  { animation: ipdf-slide-up  0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ipdf-animate-slide-down{ animation: ipdf-slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ipdf-animate-scale-in  { animation: ipdf-scale-in  0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.ipdf-delay-50  { animation-delay: 0.05s; }
+.ipdf-delay-100 { animation-delay: 0.1s; }
+.ipdf-delay-150 { animation-delay: 0.15s; }
+.ipdf-delay-200 { animation-delay: 0.2s; }
+.ipdf-delay-300 { animation-delay: 0.3s; }
+.ipdf-delay-400 { animation-delay: 0.4s; }
+.ipdf-delay-500 { animation-delay: 0.5s; }
+
+/* Premium Card Hover Lift */
+.ipdf-card-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease;
+}
+.ipdf-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -10px rgba(0,0,0,0.08), 0 4px 12px -8px rgba(0,0,0,0.05);
+  border-color: var(--color-neutral-200);
+}
+
+/* Stunning Brand Gradient */
+.ipdf-brand-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.ipdf-brand-gradient-text {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Typing indicator dots */
+.ipdf-typing-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-neutral-400);
+  animation: ipdf-typing-dot 1.4s ease-in-out infinite;
+}
+.ipdf-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.ipdf-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Custom Sleek Scrollbar */
+.ipdf-scrollbar::-webkit-scrollbar { width: 6px; }
+.ipdf-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.ipdf-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-200);
+  border-radius: 9999px;
+}
+.ipdf-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-300);
+}
+
+/* Beautiful Glassmorphism */
+.ipdf-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* Upload drag active */
+.ipdf-drop-active {
+  border-color: var(--color-brand-500) !important;
+  background: rgba(99, 102, 241, 0.03) !important;
+}
+
+/* Logo glow */
+.ipdf-logo-glow {
+  animation: ipdf-logo-glow 3s ease-in-out infinite;
+}
+
+/* Chat message entrance */
+.ipdf-message-enter {
+  animation: ipdf-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Shimmer skeleton */
+.ipdf-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-neutral-100) 25%,
+    var(--color-neutral-50) 50%,
+    var(--color-neutral-100) 75%
+  );
+  background-size: 200% 100%;
+  animation: ipdf-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Upload bounce */
+.ipdf-upload-icon {
+  animation: ipdf-upload-bounce 2s ease-in-out infinite;
+}
