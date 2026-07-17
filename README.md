@@ -16,6 +16,10 @@ IntelliPDF is a full-stack RAG application for uploading PDFs and chatting with 
 
 </div>
 
+## Demo
+
+![IntelliPDF demo — upload a document, wait for indexing, then chat with cited answers](screenshots/demo.gif)
+
 ## What it does
 
 - Upload PDFs up to 50 MB and track indexing progress in real time.
