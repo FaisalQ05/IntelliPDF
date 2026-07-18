@@ -6,6 +6,7 @@ const start = async () => {
   try {
     await container.fileStorageService.ensureUploadsDirectory();
     await prismaService.connect();
+    container.queueService.startOutboxPublisher();
 
     const server = app.listen(env.PORT, () => {
       logger.info(`🚀 Server running on port ${env.PORT} [${env.NODE_ENV}]`);

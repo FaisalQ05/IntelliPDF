@@ -16,12 +16,22 @@ import {
 
 export interface CitationChunk {
   pageContent: string;
-  metadata: { documentId?: string; page?: number; loc?: { pageNumber?: number; lines?: { from?: number; to?: number } }; source?: string; [key: string]: unknown };
+  metadata: {
+    documentId?: string;
+    page?: number;
+    loc?: { pageNumber?: number; lines?: { from?: number; to?: number } };
+    source?: string;
+    [key: string]: unknown;
+  };
   score?: number;
 }
 
 type ChatHistoryItem = { role: string; content: string };
-type ProgressCallback = (status: DocumentStatus, progress: number, message?: string) => Promise<void>;
+type ProgressCallback = (
+  status: DocumentStatus,
+  progress: number,
+  message?: string
+) => Promise<void>;
 
 const EMBEDDING_BATCH_SIZE = 20;
 const SCORE_THRESHOLD = 0.5;
@@ -38,57 +48,120 @@ const CHUNK_OPTIONS = {
  */
 export class RagService {
   private readonly embeddings = new GoogleEmbeddingsService();
-  private readonly documentStore = new QdrantDocumentStoreService(this.embeddings);
+  private readonly documentStore = new QdrantDocumentStoreService(
+    this.embeddings
+  );
   private readonly llm = new ChatGroq({
     apiKey: env.GROQ_API_KEY,
     model: "llama-3.3-70b-versatile",
     temperature: 0.2,
   });
 
-  async processDocument(filePath: string, documentId: string, onProgress?: ProgressCallback): Promise<void> {
+  async processDocument(
+    filePath: string,
+    documentId: string,
+    onProgress?: ProgressCallback
+  ): Promise<void> {
     await onProgress?.("PROCESSING", 5, "Preparing document");
     const pages = await new PDFLoader(filePath).load();
-    await onProgress?.("PROCESSING", 15, `Parsed ${pages.length} page${pages.length === 1 ? "" : "s"}`);
+    await onProgress?.(
+      "PROCESSING",
+      15,
+      `Parsed ${pages.length} page${pages.length === 1 ? "" : "s"}`
+    );
 
-    const chunks = await new RecursiveCharacterTextSplitter(CHUNK_OPTIONS).splitDocuments(pages);
-    await onProgress?.("PROCESSING", 30, `Split into ${chunks.length} chunk${chunks.length === 1 ? "" : "s"}`);
+    const chunks = await new RecursiveCharacterTextSplitter(
+      CHUNK_OPTIONS
+    ).splitDocuments(pages);
+    await onProgress?.(
+      "PROCESSING",
+      30,
+      `Split into ${chunks.length} chunk${chunks.length === 1 ? "" : "s"}`
+    );
 
-    const documents = chunks.map((chunk) => ({
+    const documents = chunks.map((chunk, chunkIndex) => ({
       ...chunk,
-      metadata: { ...chunk.metadata, documentId },
+      metadata: { ...chunk.metadata, documentId, chunkIndex },
     }));
 
-    await onProgress?.("EMBEDDING", 35, `Generating embeddings (${chunks.length} chunks)`);
+    await onProgress?.(
+      "EMBEDDING",
+      35,
+      `Generating embeddings (${chunks.length} chunks)`
+    );
     const vectors = await this.embedChunks(documents, onProgress);
     await onProgress?.("INDEXING", 82, "Uploading to vector store");
     await this.documentStore.addVectors(vectors, documents);
     await onProgress?.("INDEXING", 98, "Finalising index");
   }
 
-  async askQuestion(documentId: string, question: string, history: ChatHistoryItem[]): Promise<string> {
-    const { context } = await this.retrieveWithContext(documentId, question, history);
+  async askQuestion(
+    documentId: string,
+    question: string,
+    history: ChatHistoryItem[]
+  ): Promise<string> {
+    const { context } = await this.retrieveWithContext(
+      documentId,
+      question,
+      history
+    );
     if (!context.trim()) return "I don't know.";
     return this.invokeQa(context, question, this.toMessages(history));
   }
 
-  async askQuestionStream(documentId: string, question: string, history: ChatHistoryItem[]) {
-    const { context, citations } = await this.retrieveWithContext(documentId, question, history);
-    if (!context.trim()) return { stream: this.unknownAnswerStream(), documents: [] as CitationChunk[] };
+  async deleteDocumentVectors(documentId: string) {
+    await this.documentStore.deleteByDocumentId(documentId);
+  }
+
+  async askQuestionStream(
+    documentId: string,
+    question: string,
+    history: ChatHistoryItem[]
+  ) {
+    const { context, citations } = await this.retrieveWithContext(
+      documentId,
+      question,
+      history
+    );
+    if (!context.trim())
+      return {
+        stream: this.unknownAnswerStream(),
+        documents: [] as CitationChunk[],
+      };
 
     try {
       const chain = this.createQaChain(this.toMessages(history));
-      return { stream: await chain.stream({ context, input: question }), documents: citations };
+      return {
+        stream: await chain.stream({ context, input: question }),
+        documents: citations,
+      };
     } catch (error) {
       throw this.providerError(error);
     }
   }
 
-  private async retrieveWithContext(documentId: string, question: string, history: ChatHistoryItem[]) {
+  private async retrieveWithContext(
+    documentId: string,
+    question: string,
+    history: ChatHistoryItem[]
+  ) {
     const messages = this.toMessages(history);
-    const standaloneQuestion = await this.contextualizeQuestion(question, messages);
-    const results = await this.documentStore.findSimilar(documentId, standaloneQuestion, RETRIEVAL_K);
-    const citations = results.filter(({ score }) => score >= SCORE_THRESHOLD).map(this.toCitation);
-    return { citations, context: citations.map(({ pageContent }) => pageContent).join("\n\n") };
+    const standaloneQuestion = await this.contextualizeQuestion(
+      question,
+      messages
+    );
+    const results = await this.documentStore.findSimilar(
+      documentId,
+      standaloneQuestion,
+      RETRIEVAL_K
+    );
+    const citations = results
+      .filter(({ score }) => score >= SCORE_THRESHOLD)
+      .map(this.toCitation);
+    return {
+      citations,
+      context: citations.map(({ pageContent }) => pageContent).join("\n\n"),
+    };
   }
 
   private async embedChunks(
@@ -96,30 +169,51 @@ export class RagService {
     onProgress?: ProgressCallback
   ): Promise<number[][]> {
     const vectors: number[][] = [];
-    const totalBatches = Math.max(1, Math.ceil(chunks.length / EMBEDDING_BATCH_SIZE));
+    const totalBatches = Math.max(
+      1,
+      Math.ceil(chunks.length / EMBEDDING_BATCH_SIZE)
+    );
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex += 1) {
       const start = batchIndex * EMBEDDING_BATCH_SIZE;
-      const texts = chunks.slice(start, start + EMBEDDING_BATCH_SIZE).map(({ pageContent }) => pageContent);
-      vectors.push(...await this.embeddings.embedDocuments(texts));
+      const texts = chunks
+        .slice(start, start + EMBEDDING_BATCH_SIZE)
+        .map(({ pageContent }) => pageContent);
+      vectors.push(...(await this.embeddings.embedDocuments(texts)));
       const progress = Math.round(35 + ((batchIndex + 1) / totalBatches) * 45);
-      await onProgress?.("EMBEDDING", progress, `Embedding batch ${batchIndex + 1}/${totalBatches}`);
+      await onProgress?.(
+        "EMBEDDING",
+        progress,
+        `Embedding batch ${batchIndex + 1}/${totalBatches}`
+      );
     }
     return vectors;
   }
 
-  private async contextualizeQuestion(question: string, history: (HumanMessage | AIMessage)[]): Promise<string> {
+  private async contextualizeQuestion(
+    question: string,
+    history: (HumanMessage | AIMessage)[]
+  ): Promise<string> {
     if (history.length === 0) return question;
     const prompt = ChatPromptTemplate.fromMessages([
-      ["system", "Given the chat history and latest user question, formulate a standalone question. Do not answer it; return it unchanged if no reformulation is needed."],
+      [
+        "system",
+        "Given the chat history and latest user question, formulate a standalone question. Do not answer it; return it unchanged if no reformulation is needed.",
+      ],
       ...history,
       ["human", "{input}"],
     ]);
-    return RunnableSequence.from([prompt, this.llm, new StringOutputParser()]).invoke({ input: question });
+    return RunnableSequence.from([
+      prompt,
+      this.llm,
+      new StringOutputParser(),
+    ]).invoke({ input: question });
   }
 
   private createQaChain(history: (HumanMessage | AIMessage)[]) {
     const prompt = ChatPromptTemplate.fromMessages([
-      ["system", `You are an expert AI assistant that answers questions strictly based on the provided context extracted from a PDF document.
+      [
+        "system",
+        `You are an expert AI assistant that answers questions strictly based on the provided context extracted from a PDF document.
 
 Rules:
 1. Answer ONLY from the provided context. Do not use outside knowledge or make up information.
@@ -129,26 +223,40 @@ Rules:
 5. Never speculate or extrapolate beyond what the context states.
 
 Context:
-{context}`],
+{context}`,
+      ],
       ...history,
       ["human", "{input}"],
     ]);
     return RunnableSequence.from([prompt, this.llm, new StringOutputParser()]);
   }
 
-  private async invokeQa(context: string, question: string, history: (HumanMessage | AIMessage)[]): Promise<string> {
+  private async invokeQa(
+    context: string,
+    question: string,
+    history: (HumanMessage | AIMessage)[]
+  ): Promise<string> {
     try {
-      return await this.createQaChain(history).invoke({ context, input: question });
+      return await this.createQaChain(history).invoke({
+        context,
+        input: question,
+      });
     } catch (error) {
       throw this.providerError(error);
     }
   }
 
   private toMessages(history: ChatHistoryItem[]): (HumanMessage | AIMessage)[] {
-    return history.map(({ role, content }) => role === "USER" ? new HumanMessage(content) : new AIMessage(content));
+    return history.map(({ role, content }) =>
+      role === "USER" ? new HumanMessage(content) : new AIMessage(content)
+    );
   }
 
-  private toCitation = ({ pageContent, metadata, score }: RetrievedChunk): CitationChunk => ({
+  private toCitation = ({
+    pageContent,
+    metadata,
+    score,
+  }: RetrievedChunk): CitationChunk => ({
     pageContent,
     metadata: metadata as CitationChunk["metadata"],
     score: Math.round(score * 100) / 100,

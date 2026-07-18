@@ -59,6 +59,30 @@ flowchart LR
 
 The server is split into feature modules (`auth`, `pdf-chat`, `users`, and `audit`). Each module keeps its routes and controllers separate from application services and infrastructure adapters. Prisma, BullMQ, Qdrant, JWT, file storage, and AI providers are wired through a small composition root in `server/src/container.ts`.
 
+## Reliability and concurrency
+
+### Durable indexing hand-off
+
+Creating a document and scheduling it are one logical operation. IntelliPDF uses a small transactional outbox for that boundary:
+
+1. The upload transaction inserts the `Document` row and a `pdf.indexing.requested` outbox row together.
+2. A publisher reads pending outbox rows and adds the BullMQ job using the document ID as the stable job ID.
+3. The event is marked delivered only after BullMQ accepts it. Failed publishes stay in PostgreSQL and retry with bounded exponential backoff.
+4. The indexing worker can claim only a `QUEUED` document. Re-delivery after a crash or multiple publisher instances therefore cannot process it twice; genuine processing failures are explicitly returned to `QUEUED` for BullMQ's configured retries.
+
+This is deliberately limited to the PostgreSQL-to-BullMQ boundary, where losing a message would leave a document queued forever. Socket.IO progress events are not put in the outbox: they are live UI notifications, while the document's persisted status/progress remains authoritative and can be fetched after reconnecting.
+
+### Consistency safeguards
+
+- Refresh-token rotation uses a compare-and-swap update on the stored token hash, so two refresh requests cannot both rotate the same session successfully.
+- Google identity verification is completed before opening a database transaction, and a database `upsert` removes the concurrent first-login race.
+- Qdrant point IDs are deterministic per document chunk. Retries upsert existing points instead of duplicating vectors.
+- A document cannot be deleted while it is actively indexing. Deleting an inactive document removes its Qdrant vectors before the guarded database delete; retries are safe if an external operation fails.
+- Chat messages use a stable `(createdAt, id)` order so concurrent inserts with the same millisecond timestamp replay consistently.
+- PostgreSQL unique constraints remain the authority for unique user emails and refresh-token hashes. Normal Prisma transactions use PostgreSQL's default `READ COMMITTED` isolation; no long-lived pessimistic locks are held around external calls or model generation.
+
+Concurrent messages for a chat are persisted independently. They do not overwrite one another, but their model responses use the history available when each request begins; the application intentionally does not hold a database lock while waiting for an LLM response.
+
 ## How a document becomes a conversation
 
 ```mermaid

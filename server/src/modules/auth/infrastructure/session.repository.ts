@@ -33,15 +33,16 @@ export class SessionRepository {
 
   refreshSession(
     sessionId: string,
+    currentRefreshTokenHash: string,
     newRefreshTokenHash: string,
     expiresAt: Date,
     context?: Prisma.TransactionClient
   ) {
     const client = this.getPrismaClient(context);
-    return client.session.update({
-      where: {
-        id: sessionId,
-      },
+    return client.session.updateMany({
+      // Compare-and-swap prevents two concurrent refresh requests from both
+      // rotating the same refresh token successfully.
+      where: { id: sessionId, refreshTokenHash: currentRefreshTokenHash },
       data: {
         refreshTokenHash: newRefreshTokenHash,
         expiresAt,
