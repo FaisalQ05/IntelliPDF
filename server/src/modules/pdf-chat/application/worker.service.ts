@@ -7,6 +7,8 @@ import { IndexDocumentJobData } from "./queue.service";
 import { DocumentStatus } from "../../../../generated/prisma/client";
 import { SocketService } from "../../../common/services/socket.service";
 
+class IndexingCancelledError extends Error {}
+
 export class WorkerService {
   private worker: Worker<IndexDocumentJobData>;
   private connection: IORedis;
@@ -67,8 +69,13 @@ export class WorkerService {
     };
 
     try {
-      // Emit initial QUEUED → PROCESSING transition
-      await this.documentService.updateProgress(documentId, "PROCESSING", 5);
+      // Only the first delivery may move QUEUED work into processing. BullMQ
+      // retries and outbox re-delivery therefore cannot index a document twice.
+      const claimed = await this.documentService.claimForIndexing(documentId);
+      if (!claimed) {
+        logger.info(`Skipping already processed or deleted document ${documentId}`);
+        return;
+      }
       emit("PROCESSING", 5, "Preparing document");
 
       // The onProgress callback is called by RagService at every pipeline stage.
@@ -78,7 +85,8 @@ export class WorkerService {
         progress: number,
         message?: string
       ) => {
-        await this.documentService.updateProgress(documentId, status, progress);
+        const updated = await this.documentService.updateProgress(documentId, status, progress);
+        if (!updated) throw new IndexingCancelledError();
         await job.updateProgress(progress);
         emit(status, progress, message);
       };
@@ -86,7 +94,8 @@ export class WorkerService {
       await this.ragService.processDocument(filePath, documentId, onProgress);
 
       // Final COMPLETED state
-      await this.documentService.updateProgress(documentId, "COMPLETED", 100);
+      const completed = await this.documentService.updateProgress(documentId, "COMPLETED", 100);
+      if (!completed) throw new IndexingCancelledError();
       this.socketService.emitDocumentProgress(userId, {
         documentId,
         status: "COMPLETED",
@@ -98,17 +107,38 @@ export class WorkerService {
 
       logger.info(`Document ${documentId} processed successfully`);
     } catch (error: any) {
+      if (error instanceof IndexingCancelledError) {
+        logger.info(`Indexing cancelled because document ${documentId} no longer has an active indexing state`);
+        return;
+      }
       logger.error(`Error processing document ${documentId}:`, error);
       const errorMessage = error.message || "Unknown error occurred";
-      await this.documentService.updateError(documentId, errorMessage);
-      this.socketService.emitDocumentProgress(userId, {
-        documentId,
-        status: "FAILED",
-        progress: 0,
-        message: "Indexing failed",
-        error: errorMessage,
-        timestamp: new Date().toISOString(),
-      });
+      const maxAttempts = job.opts.attempts ?? 1;
+      if (job.attemptsMade + 1 < maxAttempts) {
+        const requeued = await this.documentService.requeueForRetry(documentId, errorMessage);
+        if (requeued) {
+          this.socketService.emitDocumentProgress(userId, {
+            documentId,
+            status: "QUEUED",
+            progress: 0,
+            message: "Indexing failed; retry scheduled",
+            error: errorMessage,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        throw error;
+      }
+      const failed = await this.documentService.updateError(documentId, errorMessage);
+      if (failed) {
+        this.socketService.emitDocumentProgress(userId, {
+          documentId,
+          status: "FAILED",
+          progress: 0,
+          message: "Indexing failed",
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+        });
+      }
       throw error;
     }
   }

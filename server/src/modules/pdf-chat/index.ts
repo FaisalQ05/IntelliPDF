@@ -11,3 +11,4 @@ export * from "./application/rag.service";
 export * from "./application/queue.service";
 export * from "./application/worker.service";
 export * from "./infrastructure/file-storage.service";
+export * from "./infrastructure/indexing-outbox.repository";

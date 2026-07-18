@@ -64,7 +64,9 @@ export class ChatRepository {
     const client = this.getClient(tx);
     return client.chatMessage.findMany({
       where: { chatId },
-      orderBy: { createdAt: "asc" },
+      // createdAt has millisecond precision; id gives concurrent inserts a
+      // stable order when they share the same timestamp.
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     });
   }
 }

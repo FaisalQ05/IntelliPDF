@@ -33,6 +33,19 @@ export class UserRepository {
     return client.user.create({ data });
   }
 
+  upsertGoogleUser(
+    data: { email: string; name?: string; providerId?: string },
+    tx?: Prisma.TransactionClient
+  ) {
+    const client = this.getPrismaClient(tx);
+    return client.user.upsert({
+      where: { email: data.email },
+      // Do not overwrite a locally managed profile when its email is used for Google login.
+      update: {},
+      create: { ...data, provider: "GOOGLE", role: "USER" },
+    });
+  }
+
   getUsers(tx?: Prisma.TransactionClient) {
     const client = this.getPrismaClient(tx);
     return client.user.findMany({

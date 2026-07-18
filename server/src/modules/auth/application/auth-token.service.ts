@@ -48,12 +48,16 @@ export class AuthTokenService {
     const nextRefreshToken = this.jwtService.signRefreshToken({
       userId: payload.userId, sessionId: session.id, role: payload.role,
     });
-    await this.sessionService.refreshSession(
+    const updated = await this.sessionService.refreshSession(
       session.id,
+      session.refreshTokenHash,
       await this.hashService.hash(nextRefreshToken),
       new Date(Date.now() + SESSION_DURATION_MS),
       tx
     );
+    if (updated.count !== 1) {
+      throw new UnauthorizedException("Session was already refreshed");
+    }
     return { accessToken, refreshToken: nextRefreshToken };
   }
 

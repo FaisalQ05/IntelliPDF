@@ -25,6 +25,9 @@ export class AuthService {
       if (!exists) {
         throw new NotFoundException(Messages.USER.NOT_FOUND);
       }
+      if (!exists.passwordHash) {
+        throw new BadRequestException(Messages.AUTH.INVALID_CREDENTIALS);
+      }
       const isValid = await this.hashService.compare(password, exists.passwordHash!);
       if (!isValid) {
         throw new BadRequestException(Messages.AUTH.INVALID_CREDENTIALS);
@@ -36,14 +39,15 @@ export class AuthService {
 
   async localSignup(dto: LocalSignupDto, ip?: string) {
     const { email, password, name } = dto;
+    // Hashing is intentionally outside the transaction to avoid holding a DB
+    // connection during CPU-bound bcrypt work.
+    const passwordHash = await this.hashService.hash(password);
 
     return this.prismaService.executeTx(async (tx) => {
       const exists = await this.userService.findByEmail(email, tx);
       if (exists) {
         throw new ConflictException(Messages.USER.ALREADY_EXISTS);
       }
-
-      const passwordHash = await this.hashService.hash(password);
 
       const user = await this.userService.createUser(
         {
@@ -61,53 +65,31 @@ export class AuthService {
   }
 
   async googleLogin(code: string, ip?: string) {
+    let email: string | undefined;
+    let name: string | undefined;
+    let sub: string | undefined;
+
+    try {
+      const { tokens } = await this.googleClient.getToken(code);
+      if (!tokens.id_token) throw new Error("Google token missing");
+
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: tokens.id_token,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      email = payload?.email;
+      name = payload?.name;
+      sub = payload?.sub;
+      if (!email) throw new Error("Google email missing");
+    } catch {
+      throw new UnauthorizedException("Invalid Google token or verification failed.");
+    }
+
     return this.prismaService.executeTx(async (tx) => {
-      let idToken: string | null | undefined;
-      let email: string | undefined;
-      let name: string | undefined;
-      let sub: string | undefined;
-
-      try {
-        const { tokens } = await this.googleClient.getToken(code);
-        idToken = tokens.id_token;
-
-        if (!idToken) {
-          throw new Error("Google token missing");
-        }
-
-        const ticket = await this.googleClient.verifyIdToken({
-          idToken,
-          audience: env.GOOGLE_CLIENT_ID,
-        });
-
-        const payload = ticket.getPayload();
-        email = payload?.email;
-        name = payload?.name;
-        sub = payload?.sub;
-
-        if (!email) {
-          throw new Error("Google email missing");
-        }
-      } catch (error) {
-        throw new UnauthorizedException("Invalid Google token or verification failed.");
-      }
-
-      let user = await this.userService.findByEmail(email, tx);
-
-      if (!user) {
-        user = await this.userService.createUser(
-          {
-            email,
-            name: name ?? "",
-            provider: "GOOGLE",
-            role: "USER",
-            providerId: sub,
-          },
-          tx
-        );
-      }
-
-      return this.authTokenService.createForUser(user, email, ip, tx);
+      // Atomic upsert removes the find-then-create race for simultaneous OAuth logins.
+      const user = await this.userService.upsertGoogleUser({ email: email!, name, providerId: sub }, tx);
+      return this.authTokenService.createForUser(user, email!, ip, tx);
     });
   }
 

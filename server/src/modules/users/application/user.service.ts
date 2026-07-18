@@ -23,4 +23,11 @@ export class UserService {
   async findByUserId(id: string, context?: Prisma.TransactionClient) {
     return this.userRepository.findById(id, context);
   }
+
+  async upsertGoogleUser(
+    params: { email: string; name?: string; providerId?: string },
+    context?: Prisma.TransactionClient
+  ) {
+    return this.userRepository.upsertGoogleUser(params, context);
+  }
 }

@@ -30,12 +30,9 @@ export class PdfChatController {
       filePath: file.path,
     });
 
-    // Enqueue background processing job
-    await this.queueService.enqueueDocumentIndexing({
-      documentId: document.id,
-      filePath: file.path,
-      userId,
-    });
+    // The transaction has already persisted an outbox event. Wake the
+    // publisher now for low latency; periodic publishing covers failures.
+    void this.queueService.publishPendingIndexingJobs();
 
     sendCreated(res, Messages.PDF_CHAT.DOCUMENT_UPLOADED, document);
   });

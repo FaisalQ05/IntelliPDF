@@ -33,12 +33,14 @@ export class SessionService {
 
   async refreshSession(
     sessionId: string,
+    currentRefreshTokenHash: string,
     newRefreshTokenHash: string,
     expiresAt: Date,
     context?: Prisma.TransactionClient
   ) {
     return this.sessionRepository.refreshSession(
       sessionId,
+      currentRefreshTokenHash,
       newRefreshTokenHash,
       expiresAt,
       context

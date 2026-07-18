@@ -105,6 +105,11 @@ enum MessageRole {
   ASSISTANT
 }
 
+enum OutboxStatus {
+  PENDING
+  DELIVERED
+}
+
 model Document {
   id        String         @id @default(uuid())
 
@@ -161,4 +166,22 @@ model ChatMessage {
 
   @@index([chatId])
   @@map("chat_messages")
+}
+
+/// Durable hand-off for database changes that must trigger asynchronous work.
+/// Indexing jobs are dispatched after their document transaction has committed.
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  type          String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  nextAttemptAt DateTime     @default(now())
+  lastError     String?
+  deliveredAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@map("outbox_events")
 }

@@ -32,6 +32,7 @@ import {
   ChatService,
   ChatMessageService,
   FileStorageService,
+  IndexingOutboxRepository,
   PdfChatController,
   RagService,
   QueueService,
@@ -45,6 +46,7 @@ export function createContainer() {
   const loginLogRepository = new LoginLogRepository(prismaService);
   const documentRepository = new DocumentRepository(prismaService);
   const chatRepository = new ChatRepository(prismaService);
+  const indexingOutboxRepository = new IndexingOutboxRepository(prismaService);
 
   // infra services
   const jwtService = new JwtService();
@@ -55,9 +57,15 @@ export function createContainer() {
   const userService = new UserService(userRepository);
   const authTokenService = new AuthTokenService(sessionService, auditService, hashService, jwtService);
   const fileStorageService = new FileStorageService();
-  const documentService = new DocumentService(documentRepository, fileStorageService);
   const ragService = new RagService();
-  const queueService = new QueueService();
+  const documentService = new DocumentService(
+    documentRepository,
+    fileStorageService,
+    prismaService,
+    indexingOutboxRepository,
+    ragService
+  );
+  const queueService = new QueueService(indexingOutboxRepository);
   const workerService = new WorkerService(ragService, documentService, socketService);
   const chatMessageService = new ChatMessageService(chatRepository);
   const chatService = new ChatService(chatRepository, documentService, ragService, chatMessageService);
