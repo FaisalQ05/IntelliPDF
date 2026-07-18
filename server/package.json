@@ -8,7 +8,10 @@
     "dev": "tsx watch src/app/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed:user": "tsx src/seeder/seed.ts"
+    "seed:user": "tsx src/seeder/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -22,10 +25,14 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.1",
     "@types/uuid": "^11.0.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "prisma": "^7.8.0",
+    "supertest": "^7.2.2",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@google/genai": "^2.12.0",
