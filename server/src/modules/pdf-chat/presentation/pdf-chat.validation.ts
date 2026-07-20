@@ -2,10 +2,10 @@ import { z } from "zod";
 
 export const pdfChatValidation = {
   paramId: z.object({
-    id: z.string().uuid("id must be a valid UUID"),
+    id: z.uuid("id must be a valid UUID"),
   }),
   createChat: z.object({
-    documentId: z.string().uuid("documentId must be a valid UUID"),
+    documentId: z.uuid("documentId must be a valid UUID"),
   }),
 
   sendMessage: z.object({
